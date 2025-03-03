@@ -5,11 +5,12 @@ This is a clean-room reimplementation of the IPC functionality from unu's usk li
 
 ## Core Architecture
 
-Single-client Redis multiplexer handling three IPC patterns:
+Single-client Redis multiplexer handling four IPC patterns:
 
 1. **Pub/Sub Messaging**: Topic-based message distribution via Redis PUBLISH/SUBSCRIBE
 2. **Request Processing**: Blocking queue consumers using BRPOP/LPUSH
 3. **Atomic Transactions**: Pipelined command groups with MULTI/EXEC semantics
+4. **Direct Command Execution**: Immediate execution of Redis commands with results
 
 ## Usage Example
 
@@ -33,11 +34,31 @@ client.HandleRequests("queue", func(data []byte) error {
     return nil
 })
 
-// Execute atomic transactions
+// Direct command execution
+value, err := client.Get("mykey")
+if err != nil {
+    log.Printf("Error: %v", err)
+}
+log.Printf("Value: %s", value)
+
+// Using convenience methods
+err = client.Set("mykey", "newvalue", 0)
+count, err := client.Incr("counter")
+hashValue, err := client.HGet("myhash", "field")
+
+// Execute atomic transactions with results
 txg := client.NewTxGroup("tx")
 txg.Add("SET", "key", "value")
-txg.Add("PUBLISH", "channel", "msg")
-txg.Exec()
+txg.Add("GET", "key")
+txg.Add("INCR", "counter")
+
+results, err := txg.Exec()
+if err != nil {
+    log.Printf("Transaction failed: %v", err)
+}
+log.Printf("SET result: %v", results[0])
+log.Printf("GET result: %v", results[1])
+log.Printf("INCR result: %v", results[2])
 ```
 
 ## Concurrency Model

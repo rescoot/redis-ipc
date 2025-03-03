@@ -67,37 +67,62 @@ func main() {
 			case <-ticker.C:
 				count++
 
-				// Test transaction
-				txg := client.NewTxGroup("example-tx")
+				// Test direct command execution
 				value := fmt.Sprintf("test-value-%d", count)
+				log.Printf("DIRECT: Setting %s = %s", testKey, value)
 
-				log.Printf("TX: Setting %s = %s", testKey, value)
-				txg.Add("SET", testKey, value)
+				err := client.Set(testKey, value, 0)
+				if err != nil {
+					log.Printf("ERROR: Direct SET failed: %v", err)
+					continue
+				}
 
-				if err := txg.Exec(); err != nil {
+				// Read back the value using direct command
+				readValue, err := client.Get(testKey)
+				if err != nil {
+					log.Printf("ERROR: Direct GET failed: %v", err)
+					continue
+				}
+				log.Printf("DIRECT: Read %s = %s", testKey, readValue)
+
+				// Test transaction with results
+				txg := client.NewTxGroup("example-tx")
+				txg.Add("SET", testKey+"-tx", value)
+				txg.Add("GET", testKey+"-tx")
+				txg.Add("INCR", "counter")
+
+				results, err := txg.Exec()
+				if err != nil {
 					log.Printf("ERROR: Transaction failed: %v", err)
 					continue
 				}
+
+				log.Printf("TX: Results: SET=%v, GET=%v, INCR=%v",
+					results[0], results[1], results[2])
 
 				// Publish test message
 				msg := fmt.Sprintf("test-message-%d", count)
 				log.Printf("PUB: Publishing to %s: %s", testChannel, msg)
 				txg = client.NewTxGroup("pub-tx")
 				txg.Add("PUBLISH", testChannel, msg)
-				if err := txg.Exec(); err != nil {
+				pubResults, err := txg.Exec()
+				if err != nil {
 					log.Printf("ERROR: Publish failed: %v", err)
 					continue
 				}
+				log.Printf("PUB: Result: %v", pubResults[0])
 
 				// Push test queue item
 				item := fmt.Sprintf("test-item-%d", count)
 				log.Printf("QUEUE: Pushing to %s: %s", testQueue, item)
 				txg = client.NewTxGroup("queue-tx")
 				txg.Add("LPUSH", testQueue, item)
-				if err := txg.Exec(); err != nil {
+				queueResults, err := txg.Exec()
+				if err != nil {
 					log.Printf("ERROR: Queue push failed: %v", err)
 					continue
 				}
+				log.Printf("QUEUE: Result: %v", queueResults[0])
 			}
 		}
 	}()
