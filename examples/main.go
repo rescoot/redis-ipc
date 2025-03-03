@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"rescoot-redis-ipc/ipc"
+	redis_ipc "rescoot-redis-ipc"
 )
 
 const (
@@ -25,7 +25,7 @@ func main() {
 	defer cancel()
 
 	log.Printf("Initializing IPC client...")
-	client, err := ipc.New(ipc.Config{
+	client, err := redis_ipc.New(redis_ipc.Config{
 		Address:       "localhost",
 		Port:          6379,
 		RetryInterval: time.Second,

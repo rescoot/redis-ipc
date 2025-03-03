@@ -1,4 +1,4 @@
-package ipc
+package redis_ipc
 
 import (
 	"context"

@@ -15,7 +15,7 @@ Single-client Redis multiplexer handling three IPC patterns:
 
 ```go
 // Initialize with connection params
-client := ipc.New(ipc.Config{
+client := redis_ipc.New(redis_ipc.Config{
     Address: "localhost",
     Port:    6379,
 })
